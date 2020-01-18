@@ -1,3 +1,10 @@
+# Project Content
+draft/
+.idea/
+data/
+output_data/
+
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
