@@ -1,10 +1,3 @@
-# Project Content
-draft/
-.idea/
-data/
-output_data/
-
-
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -134,3 +127,11 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Project Content
+/draft/
+/.idea/
+/input_data/
+/output_data/
+/.aws/
+/.ec2/
