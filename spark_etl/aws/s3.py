@@ -1,5 +1,5 @@
 import boto3
-from config.app_util import print_log
+from config.app_config import print_log
 
 
 def get_s3_key(s3_bucket: str,

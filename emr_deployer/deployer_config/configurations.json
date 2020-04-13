@@ -1,0 +1,14 @@
+[
+  {
+    "Classification": "spark",
+    "Properties": {
+      "maximizeResourceAllocation": "true"
+    }
+  },
+  {
+    "Classification": "yarn-site",
+    "Properties": {
+      "spark.yarn.maxAppAttempts": "1"
+    }
+  }
+]

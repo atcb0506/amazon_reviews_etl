@@ -1,0 +1,43 @@
+{
+  "InstanceGroups": [
+    {
+      "InstanceCount": 2,
+      "EbsConfiguration": {
+        "EbsBlockDeviceConfigs": [
+          {
+            "VolumeSpecification": {
+              "SizeInGB": 32,
+              "VolumeType": "gp2"
+            },
+            "VolumesPerInstance": 1
+          }
+        ]
+      },
+      "InstanceRole": "CORE",
+      "InstanceType": "m4.large",
+      "Name": "Core Instance Group"
+    },
+    {
+      "InstanceCount": 1,
+      "EbsConfiguration": {
+        "EbsBlockDeviceConfigs": [
+          {
+            "VolumeSpecification": {
+              "SizeInGB": 32,
+              "VolumeType": "gp2"
+            },
+            "VolumesPerInstance": 1
+          }
+        ]
+      },
+      "InstanceRole": "MASTER",
+      "InstanceType": "m4.large",
+      "Name": "Master Instance Group"
+    }
+  ],
+  "Ec2KeyName": "dockerize_athena_rds_etl",
+  "Ec2SubnetId": "subnet-4a6b7303",
+  "EmrManagedSlaveSecurityGroup": "sg-0f6e3f724b9dda65f",
+  "EmrManagedMasterSecurityGroup": "sg-0bab375e380a25adc",
+  "KeepJobFlowAliveWhenNoSteps": false
+}

@@ -1,0 +1,8 @@
+[
+  {
+    "Name": "install psycopg2, boto3, docker login",
+    "ScriptBootstrapAction": {
+      "Path": "s3://aws-bootstrap-script/emr/bootstrap.sh"
+    }
+  }
+]
