@@ -4,6 +4,7 @@ on:
   push:
     branches:
     - feature/*
+    - hotfix/*
 
 jobs:
   deploy:
@@ -30,8 +31,8 @@ jobs:
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         ECR_REPOSITORY: amazon_reviews_etl
-        IMAGE_TAG: testing
       run: |
+        HEAD_GITHUB_REF=${GITHUB_REF#*/}
+        IMAGE_TAG=$(echo ${HEAD_GITHUB_REF#*/} | sed -e "s/\//_/g")
         docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-        echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
