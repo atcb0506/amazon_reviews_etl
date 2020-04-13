@@ -1,28 +1,46 @@
 from pyspark.sql import functions as sf
 
-from spark_etl.util import print_log
-from spark_etl.util import session_create
-from spark_etl.extraction import dataframe_create
-from spark_etl.transformation import dim_product, fct_review
-from spark_etl.loading import to_csv
+from config.app_util import init_log, print_log, sh_argparser
+from config.config import JobConfig
+from data_processing.spark_util import session_create
+from data_processing.extraction import dataframe_create
+from data_processing.transformation import dim_product, fct_review
+from data_processing.loading import df_to_db
 
-if __name__ == '__main__':
+
+def main(mode: str) -> None:
+
+    """
+
+    :param mode: test or full run
+    :return:
+    """
+
+    # init log level
+    init_log(baselevel='INFO')
+
+    # get config
+    print_log(log_level='INFO', msg=f'Get config')
+    dict_config = JobConfig()
 
     # create spark session
-    spark = session_create(master='local[*]',
-                           app_name='my_first_sparkapp')
-
+    spark = session_create(**dict_config.SPARK)
     print_log(log_level='INFO', msg=f'Spark session created: {spark}')
 
     # create spark dataframe
     print_log(log_level='INFO', msg='Creating spark dataframe...')
     df = dataframe_create(spark_session=spark,
-                          path='data/tsv/amazon_reviews_multilingual_DE_v1_00.tsv.gz',
+                          path=dict_config.INPUT['input_data_path'][mode],
                           file_format='csv',
                           sep='\t',
                           header=True)
-
     print_log(log_level='INFO', msg=f'Spark dataframe is created')
+
+    # clean out "\"
+    df = df.withColumn('product_category', sf.regexp_replace('product_category', '\\\\', ''))
+    print_log(log_level='INFO', msg=f'cleaned \\ for product_category')
+    df = df.withColumn('product_title', sf.regexp_replace('product_title', '\\\\', ''))
+    print_log(log_level='INFO', msg=f'cleaned \\ for product_title')
 
     # create dim_product
     print_log(log_level='INFO', msg='Create dim_product')
@@ -32,8 +50,9 @@ if __name__ == '__main__':
 
     # save the df_dim_product
     print_log(log_level='INFO', msg='Save the df_dim_product')
-    to_csv(dataframe=df_dim_product,
-           output_path='output_data/dim_product')
+    df_to_db(dataframe=df_dim_product,
+             db_table='dim_product',
+             **dict_config.OUTPUT)
 
     # create df_fct_review
     print_log(log_level='INFO', msg='Create df_fct_review')
@@ -46,7 +65,16 @@ if __name__ == '__main__':
                                             'star_rating_mean': ('star_rating', sf.mean),
                                             'ttl_review_count': ('review_id', sf.count)})
 
-    # show the df_fct_review
+    # save the df_fct_review
     print_log(log_level='INFO', msg='Save the df_fct_review')
-    to_csv(dataframe=df_fct_review,
-           output_path='output_data/fct_review')
+    df_to_db(dataframe=df_fct_review,
+             db_table='fct_review',
+             **dict_config.OUTPUT)
+
+    # Done
+    print_log(log_level='INFO', msg='Done')
+
+
+if __name__ == '__main__':
+
+    main(**sh_argparser())
