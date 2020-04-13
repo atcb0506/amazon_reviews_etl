@@ -14,9 +14,6 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
 
-    - name: Get tag
-      uses: olegtarasov/get-tag@v2
-
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v1
       with:
@@ -34,6 +31,6 @@ jobs:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         ECR_REPOSITORY: amazon_reviews_etl
       run: |
+        GIT_TAG_NAME=${GITHUB_REF##*/}
         docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$GIT_TAG_NAME .
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$GIT_TAG_NAME
-        echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$GIT_TAG_NAME"
