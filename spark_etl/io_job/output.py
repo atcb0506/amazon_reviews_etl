@@ -1,8 +1,8 @@
 import psycopg2
 from pyspark.sql import DataFrame
-from config.app_util import print_log
-from config.secrets import get_secret
-from config.s3 import get_s3_key
+from config.app_config import print_log
+from aws.secrets import get_secret
+from aws.s3 import get_s3_key
 
 
 def df_to_csv(dataframe: DataFrame,
@@ -24,13 +24,30 @@ def df_to_csv(dataframe: DataFrame,
              header=False)
 
 
-def csv_to_db(db_table: str,
-              **kwarg) -> None:
+def csv_to_db(s3_bucket: str,
+              s3_key: str,
+              s3_region: str,
+              dbname: str,
+              host: str,
+              port: str,
+              user: str,
+              password: str,
+              db_table: str,
+              db_schema: str,
+              ) -> None:
 
     """
 
+    :param s3_bucket: from which s3_bucket
+    :param s3_key: from which s3_key
+    :param s3_region: from which s3_region
+    :param dbname: to which dbname
+    :param host: to which host
+    :param port: to which
+    :param user:
+    :param password:
     :param db_table: target table in db
-    :param kwarg: db credentials
+    :param db_schema:
     :return:
     """
 
@@ -41,29 +58,29 @@ def csv_to_db(db_table: str,
 
         # create redshift connection
         conn = psycopg2.connect(
-            dbname=kwarg["dbname"],
-            host=kwarg["host"],
-            port=kwarg["port"],
-            user=kwarg["user"],
-            password=kwarg["password"]
+            dbname=dbname,
+            host=host,
+            port=port,
+            user=user,
+            password=password
         )
         cur = conn.cursor()
         print_log(log_level='INFO', msg='Connected to the redshift database')
 
         # truncate table
-        sql = f'truncate table {kwarg["db_schema"]}.{db_table}'
+        sql = f'truncate table {db_schema}.{db_table}'
         print_log(log_level='INFO', msg=f'EXECUTE: {sql}')
         cur.execute(sql)
         print_log(log_level='INFO', msg='Truncate completed')
 
         sql = f'select aws_s3.table_import_from_s3(' \
-              f'\'{kwarg["db_schema"]}.{db_table}\',' \
+              f'\'{db_schema}.{db_table}\',' \
               f'\'\',' \
               f'\'\',' \
               f'aws_commons.create_s3_uri(' \
-              f'\'{kwarg["s3_bucket"]}\',' \
-              f'\'{kwarg["s3_key"]}\',' \
-              f'\'{kwarg["s3_region"]}\')' \
+              f'\'{s3_bucket}\',' \
+              f'\'{s3_key}\',' \
+              f'\'{s3_region}\')' \
               f');'
 
         print_log(log_level='INFO', msg=f'EXECUTE: {sql}')

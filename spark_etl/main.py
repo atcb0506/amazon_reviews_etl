@@ -1,11 +1,11 @@
-from pyspark.sql import functions as sf
-
-from config.app_util import init_log, print_log, sh_argparser
-from config.config import JobConfig
-from data_processing.spark_util import session_create
-from data_processing.extraction import dataframe_create
-from data_processing.transformation import dim_product, fct_review
-from data_processing.loading import df_to_db
+from config.app_config import init_log, print_log, sh_argparser
+from config.io_config import IOConfig
+from config.job_config import PipelineConfig
+from config.spark_config import SparkConfig
+from spark.spark_util import session_create
+from io_job.input import dataframe_create
+from etl_class.resultset import Resultset
+from etl_class.cleansing import Cleansing
 
 
 def main(mode: str) -> None:
@@ -21,57 +21,39 @@ def main(mode: str) -> None:
 
     # get config
     print_log(log_level='INFO', msg=f'Get config')
-    dict_config = JobConfig()
+    io_config = IOConfig(mode=mode)
+    spark_config = SparkConfig()
+    pipeline_config = PipelineConfig()
 
     # create spark session
-    spark = session_create(**dict_config.SPARK)
-    print_log(log_level='INFO', msg=f'Spark session created: {spark}')
+    spark_session = session_create(config=spark_config.SPARK)
+    print_log(log_level='INFO', msg=f'Spark session created: {spark_session}')
 
     # create spark dataframe
     print_log(log_level='INFO', msg='Creating spark dataframe...')
-    df = dataframe_create(spark_session=spark,
-                          path=dict_config.INPUT['input_data_path'][mode],
-                          file_format='csv',
-                          sep='\t',
-                          header=True)
+    df = dataframe_create(spark_session=spark_session,
+                          config=io_config.DF_CONFIG)
     print_log(log_level='INFO', msg=f'Spark dataframe is created')
 
-    # clean out "\"
-    df = df.withColumn('product_category', sf.regexp_replace('product_category', '\\\\', ''))
-    print_log(log_level='INFO', msg=f'cleaned \\ for product_category')
-    df = df.withColumn('product_title', sf.regexp_replace('product_title', '\\\\', ''))
-    print_log(log_level='INFO', msg=f'cleaned \\ for product_title')
+    # global cleansing pipeline
+    df_cleansed = df
+    for dict_job in pipeline_config.CLEANSING_PIPELINE:
+        print_log(log_level='INFO', msg=dict_job['job'])
+        cleansing_obj = Cleansing(df=df_cleansed,
+                                  meta_job_config=dict_job['job_config'])
+        cleansing_obj.transformation()
+        df_cleansed = cleansing_obj.get_df()
 
-    # create dim_product
-    print_log(log_level='INFO', msg='Create dim_product')
-    df_dim_product = dim_product(dataframe=df,
-                                 key='product_id',
-                                 attributes=['product_category', 'product_title'])
+    # resultset pipeline
+    for dict_job in pipeline_config.RESULTSET_PIPELINE:
+        print_log(log_level='INFO', msg=dict_job['job'])
+        resultset_obj = Resultset(df=df_cleansed,
+                                  meta_job_config=dict_job['job_config'],
+                                  output_config=io_config.OUTPUT_CONFIG)
+        resultset_obj.transformation()
+        resultset_obj.load()
 
-    # save the df_dim_product
-    print_log(log_level='INFO', msg='Save the df_dim_product')
-    df_to_db(dataframe=df_dim_product,
-             db_table='dim_product',
-             **dict_config.OUTPUT)
-
-    # create df_fct_review
-    print_log(log_level='INFO', msg='Create df_fct_review')
-    df_fct_review = fct_review(dataframe=df,
-                               key=['customer_id', 'product_id'],
-                               ls_filter=['verified_purchase = \'Y\''],
-                               agg_mapping={'total_votes_sum': ('total_votes', sf.sum),
-                                            'helpful_votes_sum': ('helpful_votes', sf.sum),
-                                            'star_rating_sum': ('star_rating', sf.sum),
-                                            'star_rating_mean': ('star_rating', sf.mean),
-                                            'ttl_review_count': ('review_id', sf.count)})
-
-    # save the df_fct_review
-    print_log(log_level='INFO', msg='Save the df_fct_review')
-    df_to_db(dataframe=df_fct_review,
-             db_table='fct_review',
-             **dict_config.OUTPUT)
-
-    # Done
+    # done
     print_log(log_level='INFO', msg='Done')
 
 

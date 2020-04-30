@@ -1,20 +1,20 @@
-from pyspark.conf import SparkConf
 from pyspark.sql import SparkSession
+from typing import Dict, Any
 
 
-def session_create(session_loglevel: str) -> SparkSession:
+def session_create(config: Dict[str ,Any]) -> SparkSession:
 
     """
 
-    :param session_loglevel: set log level of the spark session
+    :param config: spark session config
     :return: SparkSession
     """
 
-    spark_config = SparkConf()
+    # init config
+    session_loglevel = config['session_loglevel']
 
     spark_session = SparkSession\
         .builder\
-        .config(conf=spark_config)\
         .getOrCreate()
 
     spark_session.sparkContext.setLogLevel(session_loglevel)

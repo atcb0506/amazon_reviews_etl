@@ -3,7 +3,7 @@ import base64
 from botocore.exceptions import ClientError
 from json import loads
 from typing import Dict, Union
-from config.app_util import print_log
+from config.app_config import print_log
 
 
 def get_secret(secret_name: str,
